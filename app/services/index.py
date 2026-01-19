@@ -35,12 +35,12 @@ def __save_playlists(schema: IndexSchema) -> None:
         keybind = title[0] + title[-1]
         data[keybind] = playlist["id"]
 
-    with open('data/playlists.json', 'w') as f:
+    with open("data/playlists.json", "w") as f:
         f.write(json.dumps(data))
 
 
 
-def index_playlists() -> None:
+def index() -> None:
     response = __fetch_playlists()
     parsed_response =  __parse_playlists(response)
     __save_playlists(parsed_response)

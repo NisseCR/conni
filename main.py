@@ -1,7 +1,7 @@
 import logging
 
-from app.services.index import index_playlists
-from app.services.play import play_playlist
+from app.services.index import index
+from app.services.play import play
 
 
 logging.basicConfig(
@@ -12,8 +12,7 @@ logging.basicConfig(
 
 
 def main():
-    # index
-    index_playlists()
+    play(keybind="A2")
 
 if __name__ == "__main__":
     main()
