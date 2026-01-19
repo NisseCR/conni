@@ -2,20 +2,19 @@ import requests
 import logging
 import json
 
-from app.models.index_schema import IndexSchema
 
 BASE_URL = "http://127.0.0.1:3333/v1"
 
 
-def __keybind_to_id(keybind: str) -> str | None:
+def __title_to_id(title: str) -> str | None:
     with open("data/playlists.json", "r") as f:
         data = json.load(f)
 
     try:
-        return data[keybind]
+        return data[title]
 
     except KeyError:
-        logging.error(f"'{keybind}' not found in playlists.json")
+        logging.error(f"'{title}' not found in playlists.json")
 
 
 def __play_playlist(keybind: str) -> requests.Response | None:
@@ -31,8 +30,8 @@ def __play_playlist(keybind: str) -> requests.Response | None:
         return None
 
 
-def play(keybind: str) -> None:
-    playlist_id = __keybind_to_id(keybind)
+def play(title: str) -> None:
+    playlist_id = __title_to_id(title)
 
     if playlist_id is None:
         return

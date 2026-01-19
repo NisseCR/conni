@@ -32,8 +32,7 @@ def __save_playlists(schema: IndexSchema) -> None:
     data = {}
     for playlist in schema["playlists"]:
         title = playlist["title"]
-        keybind = title[0] + title[-1]
-        data[keybind] = playlist["id"]
+        data[title] = playlist["id"]
 
     with open("data/playlists.json", "w") as f:
         f.write(json.dumps(data))
