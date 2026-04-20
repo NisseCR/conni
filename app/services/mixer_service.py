@@ -30,7 +30,7 @@ class MixerService:
         self.state.current_playlist = playlist_name
         self.state.current_track_index = 0
         self.state.is_music_playing = True
-        self.backend.play_playlist(playlist_name)
+        self.backend.play_playlist(playlist_name, fade_ms=self.state.music_crossfade_ms)
 
     def switch_playlist(self, playlist_name: str) -> None:
         """
@@ -42,21 +42,21 @@ class MixerService:
         self.state.current_playlist = playlist_name
         self.state.current_track_index = 0
         self.state.is_music_playing = True
-        self.backend.play_playlist(playlist_name)
+        self.backend.play_playlist(playlist_name, fade_ms=self.state.music_crossfade_ms)
 
     def skip_track(self) -> None:
         """
         Skip to the next track in the current playlist.
         """
         self.state.current_track_index += 1
-        self.backend.skip_track()
+        self.backend.skip_track(fade_ms=self.state.music_crossfade_ms)
 
     def stop_music(self) -> None:
         """
         Stop music playback.
         """
         self.state.is_music_playing = False
-        self.backend.stop_music()
+        self.backend.stop_music(fade_ms=self.state.music_crossfade_ms)
 
     def toggle_ambience(self, name: str, path: str) -> bool:
         """
@@ -74,14 +74,14 @@ class MixerService:
             self.state.active_ambience = [
                 layer for layer in self.state.active_ambience if layer.name != name
             ]
-            self.backend.stop_ambience(name)
+            self.backend.stop_ambience(name, fade_ms=self.state.ambience_crossfade_ms)
             return False
 
         if len(self.state.active_ambience) >= self.state.max_ambience_layers:
             return False
 
         self.state.active_ambience.append(AmbienceLayer(name=name, path=path))
-        self.backend.start_ambience(name, path)
+        self.backend.start_ambience(name, path, fade_ms=self.state.ambience_crossfade_ms)
         return True
 
     def clear_ambience(self) -> None:
@@ -89,7 +89,7 @@ class MixerService:
         Remove all active ambience layers.
         """
         self.state.active_ambience.clear()
-        self.backend.stop_all_ambience()
+        self.backend.stop_all_ambience(fade_ms=self.state.ambience_crossfade_ms)
 
     def set_master_volume(self, volume: float) -> None:
         """

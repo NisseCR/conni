@@ -25,3 +25,5 @@ class PlaybackState(BaseModel):
     master_volume: float = 1.0
     is_music_playing: bool = False
     max_ambience_layers: int = 4
+    music_crossfade_ms: int = 10000
+    ambience_crossfade_ms: int = 10000
