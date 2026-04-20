@@ -13,7 +13,8 @@ class PygameAudioBackend(AudioBackend):
     Real-time audio backend built on pygame.
 
     This backend provides a minimal MVP implementation for music playback
-    and looping ambience layers.
+    and looping ambience layers, with cached ambience sounds to reduce
+    start-up hiccups.
     """
 
     def __init__(self, music_root: str = "media/music", ambience_root: str = "media/ambience") -> None:
@@ -25,12 +26,19 @@ class PygameAudioBackend(AudioBackend):
             ambience_root: Root folder containing ambience folders.
         """
         pygame.mixer.init()
+        pygame.mixer.set_num_channels(16)
+
         self.music_root = Path(music_root)
         self.ambience_root = Path(ambience_root)
         self._lock = threading.Lock()
+
         self._active_ambience_channels: dict[str, pygame.mixer.Channel] = {}
+        self._cached_ambience_sounds: dict[str, pygame.mixer.Sound] = {}
+
         self._current_playlist: str | None = None
         self._current_track_index: int = 0
+
+        self._preload_ambience_sounds()
 
     def play_playlist(self, playlist_name: str) -> None:
         """
@@ -86,15 +94,14 @@ class PygameAudioBackend(AudioBackend):
             if layer_name in self._active_ambience_channels:
                 self.stop_ambience(layer_name)
 
+            sound = self._cached_ambience_sounds.get(path)
+            if sound is None:
+                return
+
             channel = self._get_free_channel()
             if channel is None:
                 return
 
-            sound_path = Path("media") / path
-            if not sound_path.exists():
-                return
-
-            sound = pygame.mixer.Sound(str(sound_path))
             channel.play(sound, loops=-1)
             self._active_ambience_channels[layer_name] = channel
 
@@ -118,6 +125,33 @@ class PygameAudioBackend(AudioBackend):
             for channel in self._active_ambience_channels.values():
                 channel.stop()
             self._active_ambience_channels.clear()
+
+    def _preload_ambience_sounds(self) -> None:
+        """
+        Load all ambience sounds into memory once.
+
+        This reduces audio hiccups when ambience layers are toggled on later.
+        """
+        if not self.ambience_root.exists():
+            return
+
+        audio_extensions = {".mp3", ".ogg", ".wav", ".flac", ".m4a"}
+
+        for folder in self.ambience_root.iterdir():
+            if not folder.is_dir():
+                continue
+
+            for item in folder.iterdir():
+                if (
+                    item.is_file()
+                    and item.suffix.lower() in audio_extensions
+                    and item.stem.lower() not in {"cover", "folder"}
+                ):
+                    relative_path = f"ambience/{folder.name}/{item.name}"
+                    try:
+                        self._cached_ambience_sounds[relative_path] = pygame.mixer.Sound(str(item))
+                    except pygame.error:
+                        continue
 
     def _play_music_file(self, file_path: Path) -> None:
         """
@@ -147,8 +181,9 @@ class PygameAudioBackend(AudioBackend):
             [
                 item
                 for item in folder.iterdir()
-                if item.is_file() and item.suffix.lower() in audio_extensions and item.stem.lower() not in {"cover",
-                                                                                                            "folder"}
+                if item.is_file()
+                and item.suffix.lower() in audio_extensions
+                and item.stem.lower() not in {"cover", "folder"}
             ]
         )
 
