@@ -35,7 +35,7 @@ class PygameAudioBackend(AudioBackend):
 
         self._lock = threading.Lock()
         self._stop_watcher = threading.Event()
-        self._suppress_auto_advance = False
+        self._manual_transition_until = 0.0
 
         self._active_ambience_channels: dict[str, pygame.mixer.Channel] = {}
         self._cached_ambience_sounds: dict[str, pygame.mixer.Sound] = {}
@@ -56,12 +56,9 @@ class PygameAudioBackend(AudioBackend):
             with self._lock:
                 has_playlist = bool(self._shuffled_tracks)
                 music_busy = pygame.mixer.music.get_busy()
-                suppress_auto_advance = self._suppress_auto_advance
+                in_manual_transition = time.monotonic() < self._manual_transition_until
 
-                if suppress_auto_advance:
-                    self._suppress_auto_advance = False
-
-                if has_playlist and not music_busy and not suppress_auto_advance:
+                if has_playlist and not music_busy and not in_manual_transition:
                     should_advance = True
 
             if should_advance:
@@ -104,7 +101,7 @@ class PygameAudioBackend(AudioBackend):
             fade_ms: Fade duration in milliseconds.
         """
         with self._lock:
-            self._suppress_auto_advance = True
+            self._mark_manual_transition(fade_ms)
             self._fade_out_music(fade_ms)
 
             playlist_folder = self.music_root / playlist_name
@@ -129,7 +126,7 @@ class PygameAudioBackend(AudioBackend):
             if not self._shuffled_tracks:
                 return
 
-            self._suppress_auto_advance = True
+            self._mark_manual_transition(fade_ms)
             self._fade_out_music(fade_ms)
             self._current_track_index = (self._current_track_index + 1) % len(self._shuffled_tracks)
             self._play_music_file(self._shuffled_tracks[self._current_track_index], fade_ms=fade_ms)
@@ -153,7 +150,7 @@ class PygameAudioBackend(AudioBackend):
             fade_ms: Fade-out duration in milliseconds.
         """
         with self._lock:
-            self._suppress_auto_advance = True
+            self._mark_manual_transition(fade_ms)
             self._fade_out_music(fade_ms)
             self._current_playlist = None
             self._shuffled_tracks = []
@@ -213,6 +210,16 @@ class PygameAudioBackend(AudioBackend):
                 else:
                     channel.stop()
             self._active_ambience_channels.clear()
+
+    def _mark_manual_transition(self, fade_ms: int) -> None:
+        """
+        Mark a short grace period during which the watcher must not auto-advance.
+
+        Args:
+            fade_ms: Fade duration in milliseconds.
+        """
+        grace_seconds = max(0.5, (fade_ms / 1000.0) + 0.5)
+        self._manual_transition_until = time.monotonic() + grace_seconds
 
     def _fade_out_music(self, fade_ms: int) -> None:
         """
