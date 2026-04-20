@@ -20,7 +20,6 @@ class AmbienceRequest(BaseModel):
     """
     name: str
     path: str
-    volume: float = 1.0
 
 
 @router.post("/play")
@@ -47,28 +46,16 @@ def switch_playlist(
     return {"ok": True}
 
 
-@router.post("/ambience/add")
-def add_ambience(
+@router.post("/ambience/toggle")
+def toggle_ambience(
     payload: AmbienceRequest,
     playback_service: PlaybackService = Depends(get_playback_service),
 ) -> dict:
     """
-    Add a new ambience layer.
+    Toggle an ambience layer.
     """
-    ok = playback_service.add_ambience(payload.name, payload.path, payload.volume)
-    return {"ok": ok}
-
-
-@router.post("/ambience/remove")
-def remove_ambience(
-    payload: PlaylistRequest,
-    playback_service: PlaybackService = Depends(get_playback_service),
-) -> dict:
-    """
-    Remove an active ambience layer by name.
-    """
-    ok = playback_service.remove_ambience(payload.playlist_name)
-    return {"ok": ok}
+    active = playback_service.toggle_ambience(payload.name, payload.path)
+    return {"ok": True, "active": active}
 
 
 @router.post("/ambience/clear")

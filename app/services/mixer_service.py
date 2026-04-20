@@ -51,47 +51,34 @@ class MixerService:
         """
         self.state.is_music_playing = False
 
-    def add_ambience(self, name: str, path: str, volume: float = 1.0) -> bool:
+    def toggle_ambience(self, name: str, path: str) -> bool:
         """
-        Add a new ambience layer if capacity allows.
+        Toggle an ambience layer on or off.
+
+        If the layer is already active, it is removed.
+        If it is not active, it is added if capacity allows.
 
         Args:
-            name: Ambience name.
-            path: File path to the ambience audio.
-            volume: Layer volume.
+            name: Ambience folder name.
+            path: Ambience folder path.
 
         Returns:
-            True if the layer was added, otherwise False.
+            True if the layer was added, False if it was removed or rejected.
         """
+        existing = next((layer for layer in self.state.active_ambience if layer.name == name), None)
+        if existing is not None:
+            self.state.active_ambience = [
+                layer for layer in self.state.active_ambience if layer.name != name
+            ]
+            return False
+
         if len(self.state.active_ambience) >= self.state.max_ambience_layers:
             return False
 
         self.state.active_ambience.append(
-            AmbienceLayer(name=name, path=path, volume=self._clamp(volume))
+            AmbienceLayer(name=name, path=path)
         )
         return True
-
-    def remove_ambience(self, name: str) -> bool:
-        """
-        Remove an active ambience layer by name.
-
-        Args:
-            name: Layer name to remove.
-
-        Returns:
-            True if removed, otherwise False.
-        """
-        before = len(self.state.active_ambience)
-        self.state.active_ambience = [
-            layer for layer in self.state.active_ambience if layer.name != name
-        ]
-        return len(self.state.active_ambience) != before
-
-    def clear_ambience(self) -> None:
-        """
-        Remove all active ambience layers.
-        """
-        self.state.active_ambience.clear()
 
     def set_master_volume(self, volume: float) -> None:
         """

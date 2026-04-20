@@ -13,3 +13,12 @@ def index() -> str:
     """
     template_path = Path("app/templates/index.html")
     return template_path.read_text(encoding="utf-8")
+
+
+@router.get("/ambience/{folder_name}", response_class=HTMLResponse)
+def ambience_folder(folder_name: str) -> str:
+    """
+    Return the ambience detail page for a specific folder.
+    """
+    template_path = Path("app/templates/ambience.html")
+    return template_path.read_text(encoding="utf-8").replace("{{FOLDER_NAME}}", folder_name)

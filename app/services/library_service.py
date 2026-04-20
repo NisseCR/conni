@@ -81,6 +81,38 @@ class LibraryService:
 
         return ambience
 
+    def get_ambience_folder(self, folder_name: str) -> AmbienceFolderItem | None:
+        """
+        Return a single ambience folder by name.
+
+        Args:
+            folder_name: Name of the ambience folder.
+
+        Returns:
+            The matching ambience folder item, or None if not found.
+        """
+        folder = self.ambience_dir / folder_name
+        if not folder.exists() or not folder.is_dir():
+            return None
+
+        tracks = self._collect_audio_files(folder)
+        if not tracks:
+            return None
+
+        base_prefix = f"ambience/{folder.name}"
+        return AmbienceFolderItem(
+            title=folder.name,
+            path=base_prefix,
+            thumbnail=self._find_thumbnail(folder, base_prefix=base_prefix),
+            tracks=[
+                AmbienceTrackItem(
+                    title=track.stem,
+                    path=f"{base_prefix}/{track.name}",
+                )
+                for track in tracks
+            ],
+        )
+
     def scan(self) -> dict:
         """
         Return the full library snapshot.

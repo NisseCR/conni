@@ -41,20 +41,14 @@ class PlaybackService:
         """
         self.mixer.stop_music()
 
-    def add_ambience(self, name: str, path: str, volume: float = 1.0) -> bool:
+    def toggle_ambience(self, name: str, path: str) -> bool:
         """
-        Add an ambience layer.
+        Toggle an ambience layer.
         """
-        return self.mixer.add_ambience(name, path, volume)
-
-    def remove_ambience(self, name: str) -> bool:
-        """
-        Remove an ambience layer.
-        """
-        return self.mixer.remove_ambience(name)
+        return self.mixer.toggle_ambience(name, path)
 
     def clear_ambience(self) -> None:
         """
-        Remove all ambience layers.
+        Remove all active ambience layers.
         """
-        self.mixer.clear_ambience()
+        self.mixer.state.active_ambience.clear()
