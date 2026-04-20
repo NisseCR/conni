@@ -26,6 +26,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Audio Mixer MVP")
 
     backend = PygameAudioBackend()
+    app.state.audio_backend = backend
     app.state.library_service = LibraryService()
     app.state.mixer_service = MixerService(backend)
     app.state.playback_service = PlaybackService(app.state.mixer_service)
@@ -49,3 +50,10 @@ def start_hotkeys() -> None:
     Start the global hotkey listener using shared services.
     """
     HotkeyService(app.state.playback_service).run()
+
+
+def start_audio_watcher() -> None:
+    """
+    Start the background watcher for automatic track advancement.
+    """
+    app.state.audio_backend.start_music_watcher()

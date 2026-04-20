@@ -4,14 +4,15 @@ import threading
 
 import uvicorn
 
-from app.main import app, start_hotkeys
+from app.main import app, start_audio_watcher, start_hotkeys
 
 
 def main() -> None:
     """
-    Start the web server and hotkey listener.
+    Start the web server and background listeners.
     """
     threading.Thread(target=start_hotkeys, daemon=True).start()
+    threading.Thread(target=start_audio_watcher, daemon=True).start()
     uvicorn.run(app, host="127.0.0.1", port=8000)
 
 

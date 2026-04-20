@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import random
 import threading
+import time
 from pathlib import Path
 
 import pygame
@@ -30,19 +32,52 @@ class PygameAudioBackend(AudioBackend):
 
         self.music_root = Path(music_root)
         self.ambience_root = Path(ambience_root)
+
         self._lock = threading.Lock()
+        self._stop_watcher = threading.Event()
+        self._suppress_auto_advance = False
 
         self._active_ambience_channels: dict[str, pygame.mixer.Channel] = {}
         self._cached_ambience_sounds: dict[str, pygame.mixer.Sound] = {}
 
         self._current_playlist: str | None = None
+        self._shuffled_tracks: list[Path] = []
         self._current_track_index: int = 0
 
         self._preload_ambience_sounds()
 
+    def start_music_watcher(self) -> None:
+        """
+        Start a background loop that advances the playlist when a track ends.
+        """
+        while not self._stop_watcher.is_set():
+            should_advance = False
+
+            with self._lock:
+                has_playlist = bool(self._shuffled_tracks)
+                music_busy = pygame.mixer.music.get_busy()
+                suppress_auto_advance = self._suppress_auto_advance
+
+                if suppress_auto_advance:
+                    self._suppress_auto_advance = False
+
+                if has_playlist and not music_busy and not suppress_auto_advance:
+                    should_advance = True
+
+            if should_advance:
+                self.advance_track()
+
+            time.sleep(0.2)
+
+    def stop_music_watcher(self) -> None:
+        """
+        Stop the background watcher loop.
+        """
+        self._stop_watcher.set()
+
     def play_playlist(self, playlist_name: str, fade_ms: int = 0) -> None:
         """
-        Start playing a playlist from the first track.
+        Start playing a shuffled playlist from the first track.
 
         Args:
             playlist_name: Playlist folder name.
@@ -55,8 +90,10 @@ class PygameAudioBackend(AudioBackend):
                 return
 
             self._current_playlist = playlist_name
+            self._shuffled_tracks = tracks[:]
+            random.shuffle(self._shuffled_tracks)
             self._current_track_index = 0
-            self._play_music_file(tracks[0], fade_ms=fade_ms)
+            self._play_music_file(self._shuffled_tracks[0], fade_ms=fade_ms)
 
     def switch_playlist(self, playlist_name: str, fade_ms: int = 0) -> None:
         """
@@ -67,15 +104,19 @@ class PygameAudioBackend(AudioBackend):
             fade_ms: Fade duration in milliseconds.
         """
         with self._lock:
+            self._suppress_auto_advance = True
             self._fade_out_music(fade_ms)
+
             playlist_folder = self.music_root / playlist_name
             tracks = self._list_audio_files(playlist_folder)
             if not tracks:
                 return
 
             self._current_playlist = playlist_name
+            self._shuffled_tracks = tracks[:]
+            random.shuffle(self._shuffled_tracks)
             self._current_track_index = 0
-            self._play_music_file(tracks[0], fade_ms=fade_ms)
+            self._play_music_file(self._shuffled_tracks[0], fade_ms=fade_ms)
 
     def skip_track(self, fade_ms: int = 0) -> None:
         """
@@ -85,35 +126,24 @@ class PygameAudioBackend(AudioBackend):
             fade_ms: Fade duration in milliseconds.
         """
         with self._lock:
-            if self._current_playlist is None:
+            if not self._shuffled_tracks:
                 return
 
-            playlist_folder = self.music_root / self._current_playlist
-            tracks = self._list_audio_files(playlist_folder)
-            if not tracks:
-                return
-
+            self._suppress_auto_advance = True
             self._fade_out_music(fade_ms)
-            self._current_track_index = (self._current_track_index + 1) % len(tracks)
-            self._play_music_file(tracks[self._current_track_index], fade_ms=fade_ms)
+            self._current_track_index = (self._current_track_index + 1) % len(self._shuffled_tracks)
+            self._play_music_file(self._shuffled_tracks[self._current_track_index], fade_ms=fade_ms)
 
     def advance_track(self) -> None:
         """
         Advance to the next track naturally, without a fade transition.
-
-        This is intended for normal playlist progression.
         """
         with self._lock:
-            if self._current_playlist is None:
+            if not self._shuffled_tracks:
                 return
 
-            playlist_folder = self.music_root / self._current_playlist
-            tracks = self._list_audio_files(playlist_folder)
-            if not tracks:
-                return
-
-            self._current_track_index = (self._current_track_index + 1) % len(tracks)
-            self._play_music_file(tracks[self._current_track_index], fade_ms=0)
+            self._current_track_index = (self._current_track_index + 1) % len(self._shuffled_tracks)
+            self._play_music_file(self._shuffled_tracks[self._current_track_index], fade_ms=0)
 
     def stop_music(self, fade_ms: int = 0) -> None:
         """
@@ -123,8 +153,10 @@ class PygameAudioBackend(AudioBackend):
             fade_ms: Fade-out duration in milliseconds.
         """
         with self._lock:
+            self._suppress_auto_advance = True
             self._fade_out_music(fade_ms)
             self._current_playlist = None
+            self._shuffled_tracks = []
             self._current_track_index = 0
 
     def start_ambience(self, layer_name: str, path: str, fade_ms: int = 0) -> None:
