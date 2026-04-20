@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 from pynput import keyboard
+
+from app.services.playback_service import PlaybackService
 
 
 class HotkeyService:
@@ -6,7 +10,7 @@ class HotkeyService:
     Registers global keyboard shortcuts for music actions only.
     """
 
-    def __init__(self, playback_service) -> None:
+    def __init__(self, playback_service: PlaybackService) -> None:
         """
         Initialize the hotkey service.
 
@@ -26,31 +30,13 @@ class HotkeyService:
     def _bindings(self) -> dict[str, callable]:
         """
         Define hotkey mappings for music only.
+
+        Returns:
+            Dictionary of shortcut strings mapped to callbacks.
         """
         return {
-            "<shift>+1": lambda: self._trigger_playlist("frontier"),
-            "<shift>+2": lambda: self._trigger_playlist("dissonance"),
-            "<shift>+q": self._trigger_skip,
-            "<shift>+w": self._trigger_stop,
+            "<shift>+1": lambda: self.playback_service.switch_playlist("frontier"),
+            "<shift>+2": lambda: self.playback_service.switch_playlist("dissonance"),
+            "<shift>+q": self.playback_service.skip,
+            "<shift>+w": self.playback_service.stop,
         }
-
-    def _trigger_playlist(self, playlist_name: str) -> None:
-        """
-        Trigger playlist playback and print a debug message.
-        """
-        print(f"Hotkey: play {playlist_name}")
-        self.playback_service.play_playlist(playlist_name)
-
-    def _trigger_skip(self) -> None:
-        """
-        Trigger track skip and print a debug message.
-        """
-        print("Hotkey: skip")
-        self.playback_service.skip()
-
-    def _trigger_stop(self) -> None:
-        """
-        Trigger stop and print a debug message.
-        """
-        print("Hotkey: stop")
-        self.playback_service.stop()

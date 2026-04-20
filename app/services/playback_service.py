@@ -19,21 +19,27 @@ class PlaybackService:
 
     def play_playlist(self, playlist_name: str) -> None:
         """
-        Start a playlist.
+        Start a playlist using the explicit transition behavior.
         """
-        self.mixer.start_playlist(playlist_name)
+        self.mixer.switch_playlist(playlist_name)
 
     def switch_playlist(self, playlist_name: str) -> None:
         """
-        Switch to another playlist.
+        Switch to another playlist using the explicit transition behavior.
         """
         self.mixer.switch_playlist(playlist_name)
 
     def skip(self) -> None:
         """
-        Skip the current track.
+        Skip the current track using the explicit transition behavior.
         """
         self.mixer.skip_track()
+
+    def advance(self) -> None:
+        """
+        Advance naturally to the next track without a fade.
+        """
+        self.mixer.advance_track()
 
     def stop(self) -> None:
         """
@@ -51,4 +57,4 @@ class PlaybackService:
         """
         Remove all active ambience layers.
         """
-        self.mixer.state.active_ambience.clear()
+        self.mixer.clear_ambience()

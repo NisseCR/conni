@@ -30,7 +30,7 @@ def play_playlist(
     """
     Start a playlist.
     """
-    playback_service.play_playlist(payload.playlist_name)
+    playback_service.switch_playlist(payload.playlist_name)
     return {"ok": True}
 
 

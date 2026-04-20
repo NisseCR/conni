@@ -23,12 +23,30 @@ class AudioBackend(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def switch_playlist(self, playlist_name: str, fade_ms: int = 0) -> None:
+        """
+        Switch to another music playlist with an explicit transition.
+
+        Args:
+            playlist_name: Name of the next playlist.
+            fade_ms: Fade duration in milliseconds.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def skip_track(self, fade_ms: int = 0) -> None:
         """
-        Skip to the next track in the current playlist.
+        Skip to the next track in the current playlist with an explicit transition.
 
         Args:
             fade_ms: Fade duration in milliseconds.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def advance_track(self) -> None:
+        """
+        Advance to the next track naturally, without a fade transition.
         """
         raise NotImplementedError
 

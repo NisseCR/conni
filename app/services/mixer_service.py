@@ -42,7 +42,7 @@ class MixerService:
         self.state.current_playlist = playlist_name
         self.state.current_track_index = 0
         self.state.is_music_playing = True
-        self.backend.play_playlist(playlist_name, fade_ms=self.state.music_crossfade_ms)
+        self.backend.switch_playlist(playlist_name, fade_ms=self.state.music_crossfade_ms)
 
     def skip_track(self) -> None:
         """
@@ -50,6 +50,13 @@ class MixerService:
         """
         self.state.current_track_index += 1
         self.backend.skip_track(fade_ms=self.state.music_crossfade_ms)
+
+    def advance_track(self) -> None:
+        """
+        Advance to the next track naturally, without a manual fade transition.
+        """
+        self.state.current_track_index += 1
+        self.backend.advance_track()
 
     def stop_music(self) -> None:
         """
