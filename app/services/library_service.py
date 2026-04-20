@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.models.media import AmbienceItem, PlaylistItem
+from app.models.media import AmbienceFolderItem, AmbienceTrackItem, PlaylistItem
+
+
+AUDIO_EXTENSIONS = {".mp3", ".wav", ".ogg", ".flac", ".m4a"}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
 
 class LibraryService:
@@ -16,7 +20,7 @@ class LibraryService:
 
         Args:
             music_dir: Folder containing playlist folders.
-            ambience_dir: Folder containing ambience files.
+            ambience_dir: Folder containing ambience folders.
         """
         self.music_dir = Path(music_dir)
         self.ambience_dir = Path(ambience_dir)
@@ -24,9 +28,6 @@ class LibraryService:
     def list_playlists(self) -> list[PlaylistItem]:
         """
         Discover music playlists from subfolders.
-
-        Returns:
-            A list of playlist items.
         """
         playlists: list[PlaylistItem] = []
 
@@ -38,68 +39,81 @@ class LibraryService:
                 playlists.append(
                     PlaylistItem(
                         title=folder.name,
-                        path=str(folder),
-                        thumbnail=self._find_thumbnail(folder),
+                        path=f"music/{folder.name}",
+                        thumbnail=self._find_thumbnail(folder, base_prefix=f"music/{folder.name}"),
                     )
                 )
 
         return playlists
 
-    def list_ambience(self) -> list[AmbienceItem]:
+    def list_ambience(self) -> list[AmbienceFolderItem]:
         """
-        Discover ambience files.
-
-        Returns:
-            A list of ambience items.
+        Discover ambience collections from subfolders.
         """
-        ambience: list[AmbienceItem] = []
+        ambience: list[AmbienceFolderItem] = []
 
         if not self.ambience_dir.exists():
             return ambience
 
-        for file_path in sorted(self.ambience_dir.iterdir()):
-            if file_path.is_file():
-                ambience.append(
-                    AmbienceItem(
-                        title=file_path.stem,
-                        path=str(file_path),
-                        thumbnail=self._find_thumbnail(file_path.parent, file_path.stem),
-                    )
+        for folder in sorted(self.ambience_dir.iterdir()):
+            if not folder.is_dir():
+                continue
+
+            tracks = self._collect_audio_files(folder)
+            if not tracks:
+                continue
+
+            base_prefix = f"ambience/{folder.name}"
+            ambience.append(
+                AmbienceFolderItem(
+                    title=folder.name,
+                    path=base_prefix,
+                    thumbnail=self._find_thumbnail(folder, base_prefix=base_prefix),
+                    tracks=[
+                        AmbienceTrackItem(
+                            title=track.stem,
+                            path=f"{base_prefix}/{track.name}",
+                        )
+                        for track in tracks
+                    ],
                 )
+            )
 
         return ambience
 
     def scan(self) -> dict:
         """
         Return the full library snapshot.
-
-        Returns:
-            Dictionary with playlists and ambience.
         """
         return {
             "playlists": [item.model_dump() for item in self.list_playlists()],
             "ambience": [item.model_dump() for item in self.list_ambience()],
         }
 
-    def _find_thumbnail(self, folder: Path, stem: str | None = None) -> str | None:
+    def _collect_audio_files(self, folder: Path) -> list[Path]:
         """
-        Find a thumbnail image for a playlist or ambience item.
-
-        Args:
-            folder: Folder to search in.
-            stem: Optional file stem for ambience items.
-
-        Returns:
-            Thumbnail path if found, otherwise None.
+        Collect audio files from a folder in alphabetical order.
         """
-        candidates: list[str] = []
-        if stem:
-            candidates.extend([f"{stem}.jpg", f"{stem}.jpeg", f"{stem}.png", f"{stem}.webp"])
-        candidates.extend(["cover.jpg", "cover.png", "folder.jpg", "folder.png"])
+        return sorted(
+            [
+                p for p in folder.iterdir()
+                if p.is_file() and p.suffix.lower() in AUDIO_EXTENSIONS
+            ]
+        )
+
+    def _find_thumbnail(self, folder: Path, base_prefix: str) -> str | None:
+        """
+        Find a thumbnail image for a playlist or ambience folder.
+        """
+        candidates = ["cover.jpg", "cover.jpeg", "cover.png", "cover.webp", "folder.jpg", "folder.png"]
 
         for name in candidates:
             candidate = folder / name
             if candidate.exists():
-                return str(candidate)
+                return f"{base_prefix}/{candidate.name}"
+
+        for file_path in sorted(folder.iterdir()):
+            if file_path.is_file() and file_path.suffix.lower() in IMAGE_EXTENSIONS:
+                return f"{base_prefix}/{file_path.name}"
 
         return None

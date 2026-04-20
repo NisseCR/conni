@@ -12,10 +12,19 @@ class PlaylistItem(BaseModel):
     thumbnail: str | None = None
 
 
-class AmbienceItem(BaseModel):
+class AmbienceTrackItem(BaseModel):
     """
-    Represents a single ambience audio file.
+    Represents one audio file inside an ambience folder.
+    """
+    title: str
+    path: str
+
+
+class AmbienceFolderItem(BaseModel):
+    """
+    Represents an ambience collection discovered from a folder.
     """
     title: str
     path: str
     thumbnail: str | None = None
+    tracks: list[AmbienceTrackItem]
