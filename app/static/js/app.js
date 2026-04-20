@@ -26,9 +26,19 @@ async function postJson(url, data) {
   return await response.json();
 }
 
-function renderPlaylistCard(item) {
+function isPlaylistActive(state, playlistTitle) {
+  return state.current_playlist === playlistTitle;
+}
+
+function isAmbienceFolderActive(state, folderTitle) {
+  return (state.active_ambience || []).some(layer =>
+    layer.name.startsWith(`${folderTitle}/`)
+  );
+}
+
+function renderPlaylistCard(item, state) {
   const card = document.createElement('button');
-  card.className = 'card';
+  card.className = isPlaylistActive(state, item.title) ? 'card card-active' : 'card';
   card.type = 'button';
 
   const image = document.createElement('img');
@@ -46,7 +56,7 @@ function renderPlaylistCard(item) {
 
   const meta = document.createElement('div');
   meta.className = 'meta';
-  meta.textContent = 'Play playlist';
+  meta.textContent = isPlaylistActive(state, item.title) ? 'Current playlist' : 'Play playlist';
 
   card.appendChild(image);
   card.appendChild(title);
@@ -55,14 +65,15 @@ function renderPlaylistCard(item) {
   card.addEventListener('click', async () => {
     await postJson('/api/play', { playlist_name: item.title });
     await loadState();
+    await loadLibrary();
   });
 
   return card;
 }
 
-function renderAmbienceCard(item) {
+function renderAmbienceCard(item, state) {
   const card = document.createElement('a');
-  card.className = 'card';
+  card.className = isAmbienceFolderActive(state, item.title) ? 'card card-active' : 'card';
   card.href = `/ambience/${item.title}`;
   card.style.textDecoration = 'none';
   card.style.color = 'inherit';
@@ -82,7 +93,9 @@ function renderAmbienceCard(item) {
 
   const meta = document.createElement('div');
   meta.className = 'meta';
-  meta.textContent = `${item.tracks?.length || 0} track(s)`;
+  meta.textContent = isAmbienceFolderActive(state, item.title)
+    ? 'Active ambience folder'
+    : `${item.tracks?.length || 0} track(s)`;
 
   card.appendChild(image);
   card.appendChild(title);
@@ -92,18 +105,21 @@ function renderAmbienceCard(item) {
 }
 
 async function loadLibrary() {
-  const data = await fetchJson('/api/library');
+  const [data, state] = await Promise.all([
+    fetchJson('/api/library'),
+    fetchJson('/api/state'),
+  ]);
 
   const playlists = document.getElementById('playlists');
   playlists.innerHTML = '';
   for (const item of data.playlists || []) {
-    playlists.appendChild(renderPlaylistCard(item));
+    playlists.appendChild(renderPlaylistCard(item, state));
   }
 
   const ambience = document.getElementById('ambience');
   ambience.innerHTML = '';
   for (const item of data.ambience || []) {
-    ambience.appendChild(renderAmbienceCard(item));
+    ambience.appendChild(renderAmbienceCard(item, state));
   }
 }
 
@@ -114,10 +130,20 @@ async function loadState() {
 
 async function bootstrap() {
   try {
-    await Promise.all([loadLibrary(), loadState()]);
+    await loadLibrary();
+    await loadState();
   } catch (error) {
     document.getElementById('state').textContent = `Failed to load: ${error}`;
+    return;
   }
-}
 
+  setInterval(async () => {
+    try {
+      await loadState();
+      await loadLibrary();
+    } catch (error) {
+      console.warn('Refresh failed:', error);
+    }
+  }, 1000);
+}
 bootstrap();
