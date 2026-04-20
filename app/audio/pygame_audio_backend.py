@@ -44,6 +44,10 @@ class PygameAudioBackend(AudioBackend):
         self._shuffled_tracks: list[Path] = []
         self._current_track_index: int = 0
 
+        self._music_volume: float = 1.0
+        self._master_volume: float = 1.0
+        self._ambience_volume: float = 1.0
+
         self._preload_ambience_sounds()
 
     def start_music_watcher(self) -> None:
@@ -178,6 +182,7 @@ class PygameAudioBackend(AudioBackend):
                 return
 
             channel.play(sound, loops=-1, fade_ms=fade_ms)
+            channel.set_volume(self._ambience_volume * self._master_volume)
             self._active_ambience_channels[layer_name] = channel
 
     def stop_ambience(self, layer_name: str, fade_ms: int = 0) -> None:
@@ -211,12 +216,56 @@ class PygameAudioBackend(AudioBackend):
                     channel.stop()
             self._active_ambience_channels.clear()
 
+    def set_music_volume(self, volume: float) -> None:
+        """
+        Set music playback volume.
+        """
+        with self._lock:
+            self._music_volume = self._clamp(volume)
+            self._apply_music_volume()
+
+    def set_master_volume(self, volume: float) -> None:
+        """
+        Set global master volume.
+        """
+        with self._lock:
+            self._master_volume = self._clamp(volume)
+            self._apply_music_volume()
+            self._apply_ambience_volumes()
+
+    def set_ambience_volume(self, volume: float) -> None:
+        """
+        Set global ambience volume.
+        """
+        with self._lock:
+            self._ambience_volume = self._clamp(volume)
+            self._apply_ambience_volumes()
+
+    def set_ambience_layer_volume(self, layer_name: str, volume: float) -> None:
+        """
+        Set volume for a single active ambience layer.
+        """
+        with self._lock:
+            channel = self._active_ambience_channels.get(layer_name)
+            if channel is not None:
+                channel.set_volume(self._ambience_volume * self._master_volume * self._clamp(volume))
+
+    def _apply_music_volume(self) -> None:
+        """
+        Apply the current music volume to the pygame music channel.
+        """
+        pygame.mixer.music.set_volume(self._music_volume * self._master_volume)
+
+    def _apply_ambience_volumes(self) -> None:
+        """
+        Apply the current ambience and master volume to all active ambience channels.
+        """
+        for layer_name, channel in self._active_ambience_channels.items():
+            channel.set_volume(self._ambience_volume * self._master_volume)
+
     def _mark_manual_transition(self, fade_ms: int) -> None:
         """
         Mark a short grace period during which the watcher must not auto-advance.
-
-        Args:
-            fade_ms: Fade duration in milliseconds.
         """
         grace_seconds = max(0.5, (fade_ms / 1000.0) + 0.5)
         self._manual_transition_until = time.monotonic() + grace_seconds
@@ -224,9 +273,6 @@ class PygameAudioBackend(AudioBackend):
     def _fade_out_music(self, fade_ms: int) -> None:
         """
         Fade out currently playing music if a fade duration is provided.
-
-        Args:
-            fade_ms: Fade-out duration in milliseconds.
         """
         if fade_ms > 0:
             pygame.mixer.music.fadeout(fade_ms)
@@ -236,8 +282,6 @@ class PygameAudioBackend(AudioBackend):
     def _preload_ambience_sounds(self) -> None:
         """
         Load all ambience sounds into memory once.
-
-        This reduces audio hiccups when ambience layers are toggled on later.
         """
         if not self.ambience_root.exists():
             return
@@ -263,23 +307,14 @@ class PygameAudioBackend(AudioBackend):
     def _play_music_file(self, file_path: Path, fade_ms: int = 0) -> None:
         """
         Load and play a music file.
-
-        Args:
-            file_path: Absolute path to the audio file.
-            fade_ms: Fade-in duration in milliseconds.
         """
         pygame.mixer.music.load(str(file_path))
         pygame.mixer.music.play(fade_ms=fade_ms)
+        self._apply_music_volume()
 
     def _list_audio_files(self, folder: Path) -> list[Path]:
         """
         Return audio files inside a folder in sorted order.
-
-        Args:
-            folder: Folder to scan.
-
-        Returns:
-            Sorted list of audio file paths.
         """
         if not folder.exists() or not folder.is_dir():
             return []
@@ -298,12 +333,15 @@ class PygameAudioBackend(AudioBackend):
     def _get_free_channel(self) -> pygame.mixer.Channel | None:
         """
         Find a free mixer channel for ambience playback.
-
-        Returns:
-            A free pygame mixer channel, or None if none are available.
         """
         for index in range(pygame.mixer.get_num_channels()):
             channel = pygame.mixer.Channel(index)
             if not channel.get_busy():
                 return channel
         return None
+
+    def _clamp(self, value: float) -> float:
+        """
+        Clamp a value to the 0.0 to 1.0 range.
+        """
+        return max(0.0, min(1.0, value))

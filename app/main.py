@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import threading
-
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 

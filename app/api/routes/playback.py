@@ -22,6 +22,15 @@ class AmbienceRequest(BaseModel):
     path: str
 
 
+class VolumeRequest(BaseModel):
+    """
+    Request body for volume actions.
+    """
+    target: str
+    value: float
+    ambience_name: str | None = None
+
+
 @router.post("/play")
 def play_playlist(
     payload: PlaylistRequest,
@@ -66,4 +75,22 @@ def clear_ambience(
     Remove all ambience layers.
     """
     playback_service.clear_ambience()
+    return {"ok": True}
+
+
+@router.post("/volume")
+def set_volume(
+    payload: VolumeRequest,
+    playback_service: PlaybackService = Depends(get_playback_service),
+) -> dict:
+    """
+    Set a volume value for music, master, or an ambience layer.
+    """
+    if payload.target == "music":
+        playback_service.mixer.set_music_volume(payload.value)
+    elif payload.target == "master":
+        playback_service.mixer.set_master_volume(payload.value)
+    elif payload.target == "ambience" and payload.ambience_name:
+        playback_service.mixer.set_ambience_layer_volume(payload.ambience_name, payload.value)
+
     return {"ok": True}

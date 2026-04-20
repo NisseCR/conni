@@ -103,18 +103,30 @@ class MixerService:
         Set master volume.
         """
         self.state.master_volume = self._clamp(volume)
+        self.backend.set_master_volume(self.state.master_volume)
 
     def set_music_volume(self, volume: float) -> None:
         """
         Set music volume.
         """
         self.state.music_volume = self._clamp(volume)
+        self.backend.set_music_volume(self.state.music_volume)
 
     def set_ambience_volume(self, volume: float) -> None:
         """
-        Set ambience volume.
+        Set ambience volume for the global ambience level.
         """
         self.state.ambience_volume = self._clamp(volume)
+        self.backend.set_ambience_volume(self.state.ambience_volume)
+
+    def set_ambience_layer_volume(self, layer_name: str, volume: float) -> None:
+        """
+        Set volume for a single active ambience layer.
+        """
+        layer = next((item for item in self.state.active_ambience if item.name == layer_name), None)
+        if layer is not None:
+            layer.volume = self._clamp(volume)
+            self.backend.set_ambience_layer_volume(layer_name, layer.volume)
 
     def _clamp(self, value: float) -> float:
         """
