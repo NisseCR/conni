@@ -19,6 +19,10 @@ body {
   overflow-y: auto;
 }
 
+.sidebar-section {
+  margin-bottom: 20px;
+}
+
 .content {
   flex: 1;
   padding: 24px;
@@ -27,14 +31,6 @@ body {
 
 .section {
   margin-bottom: 28px;
-}
-
-.panel {
-  background: #1b1b1b;
-  border: 1px solid #333;
-  border-radius: 10px;
-  padding: 12px;
-  margin-bottom: 20px;
 }
 
 .panel-label {

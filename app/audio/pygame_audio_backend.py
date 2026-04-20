@@ -22,10 +22,6 @@ class PygameAudioBackend(AudioBackend):
     def __init__(self, music_root: str = "media/music", ambience_root: str = "media/ambience") -> None:
         """
         Initialize pygame audio and prepare channel management.
-
-        Args:
-            music_root: Root folder containing music playlists.
-            ambience_root: Root folder containing ambience folders.
         """
         pygame.mixer.init()
         pygame.mixer.set_num_channels(16)
@@ -43,6 +39,7 @@ class PygameAudioBackend(AudioBackend):
         self._current_playlist: str | None = None
         self._shuffled_tracks: list[Path] = []
         self._current_track_index: int = 0
+        self._current_track_title: str | None = None
 
         self._music_volume: float = 1.0
         self._master_volume: float = 1.0
@@ -79,15 +76,12 @@ class PygameAudioBackend(AudioBackend):
     def play_playlist(self, playlist_name: str, fade_ms: int = 0) -> None:
         """
         Start playing a shuffled playlist from the first track.
-
-        Args:
-            playlist_name: Playlist folder name.
-            fade_ms: Fade-in duration in milliseconds.
         """
         with self._lock:
             playlist_folder = self.music_root / playlist_name
             tracks = self._list_audio_files(playlist_folder)
             if not tracks:
+                self._current_track_title = None
                 return
 
             self._current_playlist = playlist_name
@@ -99,10 +93,6 @@ class PygameAudioBackend(AudioBackend):
     def switch_playlist(self, playlist_name: str, fade_ms: int = 0) -> None:
         """
         Switch to another playlist using an explicit fade transition.
-
-        Args:
-            playlist_name: Playlist folder name.
-            fade_ms: Fade duration in milliseconds.
         """
         with self._lock:
             self._mark_manual_transition(fade_ms)
@@ -111,6 +101,7 @@ class PygameAudioBackend(AudioBackend):
             playlist_folder = self.music_root / playlist_name
             tracks = self._list_audio_files(playlist_folder)
             if not tracks:
+                self._current_track_title = None
                 return
 
             self._current_playlist = playlist_name
@@ -122,9 +113,6 @@ class PygameAudioBackend(AudioBackend):
     def skip_track(self, fade_ms: int = 0) -> None:
         """
         Skip to the next track in the current playlist using an explicit fade transition.
-
-        Args:
-            fade_ms: Fade duration in milliseconds.
         """
         with self._lock:
             if not self._shuffled_tracks:
@@ -149,9 +137,6 @@ class PygameAudioBackend(AudioBackend):
     def stop_music(self, fade_ms: int = 0) -> None:
         """
         Stop playlist playback.
-
-        Args:
-            fade_ms: Fade-out duration in milliseconds.
         """
         with self._lock:
             self._mark_manual_transition(fade_ms)
@@ -159,15 +144,11 @@ class PygameAudioBackend(AudioBackend):
             self._current_playlist = None
             self._shuffled_tracks = []
             self._current_track_index = 0
+            self._current_track_title = None
 
     def start_ambience(self, layer_name: str, path: str, fade_ms: int = 0) -> None:
         """
         Start looping an ambience file on its own channel.
-
-        Args:
-            layer_name: Unique ambience layer name.
-            path: Relative path to the audio file under media/.
-            fade_ms: Fade-in duration in milliseconds.
         """
         with self._lock:
             if layer_name in self._active_ambience_channels:
@@ -188,10 +169,6 @@ class PygameAudioBackend(AudioBackend):
     def stop_ambience(self, layer_name: str, fade_ms: int = 0) -> None:
         """
         Stop a specific ambience layer.
-
-        Args:
-            layer_name: Unique ambience layer name.
-            fade_ms: Fade-out duration in milliseconds.
         """
         with self._lock:
             channel = self._active_ambience_channels.pop(layer_name, None)
@@ -204,9 +181,6 @@ class PygameAudioBackend(AudioBackend):
     def stop_all_ambience(self, fade_ms: int = 0) -> None:
         """
         Stop all currently active ambience layers.
-
-        Args:
-            fade_ms: Fade-out duration in milliseconds.
         """
         with self._lock:
             for channel in self._active_ambience_channels.values():
@@ -249,6 +223,13 @@ class PygameAudioBackend(AudioBackend):
             channel = self._active_ambience_channels.get(layer_name)
             if channel is not None:
                 channel.set_volume(self._ambience_volume * self._master_volume * self._clamp(volume))
+
+    def get_current_track_title(self) -> str | None:
+        """
+        Return the current music track title.
+        """
+        with self._lock:
+            return self._current_track_title
 
     def _apply_music_volume(self) -> None:
         """
@@ -310,6 +291,7 @@ class PygameAudioBackend(AudioBackend):
         """
         pygame.mixer.music.load(str(file_path))
         pygame.mixer.music.play(fade_ms=fade_ms)
+        self._current_track_title = file_path.stem
         self._apply_music_volume()
 
     def _list_audio_files(self, folder: Path) -> list[Path]:

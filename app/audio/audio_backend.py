@@ -15,10 +15,6 @@ class AudioBackend(ABC):
     def play_playlist(self, playlist_name: str, fade_ms: int = 0) -> None:
         """
         Start playing a music playlist.
-
-        Args:
-            playlist_name: Name of the playlist to start.
-            fade_ms: Fade-in duration in milliseconds.
         """
         raise NotImplementedError
 
@@ -26,10 +22,6 @@ class AudioBackend(ABC):
     def switch_playlist(self, playlist_name: str, fade_ms: int = 0) -> None:
         """
         Switch to another music playlist with an explicit transition.
-
-        Args:
-            playlist_name: Name of the next playlist.
-            fade_ms: Fade duration in milliseconds.
         """
         raise NotImplementedError
 
@@ -37,9 +29,6 @@ class AudioBackend(ABC):
     def skip_track(self, fade_ms: int = 0) -> None:
         """
         Skip to the next track in the current playlist with an explicit transition.
-
-        Args:
-            fade_ms: Fade duration in milliseconds.
         """
         raise NotImplementedError
 
@@ -54,9 +43,6 @@ class AudioBackend(ABC):
     def stop_music(self, fade_ms: int = 0) -> None:
         """
         Stop playlist playback.
-
-        Args:
-            fade_ms: Fade-out duration in milliseconds.
         """
         raise NotImplementedError
 
@@ -64,11 +50,6 @@ class AudioBackend(ABC):
     def start_ambience(self, layer_name: str, path: str, fade_ms: int = 0) -> None:
         """
         Start an ambience layer.
-
-        Args:
-            layer_name: Unique layer name.
-            path: Relative path to the audio file.
-            fade_ms: Fade-in duration in milliseconds.
         """
         raise NotImplementedError
 
@@ -76,10 +57,6 @@ class AudioBackend(ABC):
     def stop_ambience(self, layer_name: str, fade_ms: int = 0) -> None:
         """
         Stop an ambience layer.
-
-        Args:
-            layer_name: Unique layer name.
-            fade_ms: Fade-out duration in milliseconds.
         """
         raise NotImplementedError
 
@@ -87,36 +64,28 @@ class AudioBackend(ABC):
     def stop_all_ambience(self, fade_ms: int = 0) -> None:
         """
         Stop all active ambience layers.
-
-        Args:
-            fade_ms: Fade-out duration in milliseconds.
         """
         raise NotImplementedError
 
     @abstractmethod
     def set_master_volume(self, volume: float) -> None:
-        """
-        Set the master volume.
-        """
         raise NotImplementedError
 
     @abstractmethod
     def set_music_volume(self, volume: float) -> None:
-        """
-        Set the music volume.
-        """
         raise NotImplementedError
 
     @abstractmethod
     def set_ambience_volume(self, volume: float) -> None:
-        """
-        Set the global ambience volume.
-        """
         raise NotImplementedError
 
     @abstractmethod
     def set_ambience_layer_volume(self, layer_name: str, volume: float) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_current_track_title(self) -> str | None:
         """
-        Set volume for a single active ambience layer.
+        Return the currently loaded music track title, if any.
         """
         raise NotImplementedError

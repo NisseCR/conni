@@ -12,10 +12,6 @@ class MixerService:
     def __init__(self, backend: AudioBackend, max_ambience_layers: int = 4) -> None:
         """
         Initialize playback state and backend.
-
-        Args:
-            backend: Audio backend implementation.
-            max_ambience_layers: Default maximum number of active ambience layers.
         """
         self.backend = backend
         self.state = PlaybackState(max_ambience_layers=max_ambience_layers)
@@ -23,26 +19,22 @@ class MixerService:
     def start_playlist(self, playlist_name: str) -> None:
         """
         Start a playlist and update state.
-
-        Args:
-            playlist_name: Playlist folder name.
         """
         self.state.current_playlist = playlist_name
         self.state.current_track_index = 0
         self.state.is_music_playing = True
         self.backend.play_playlist(playlist_name, fade_ms=self.state.music_crossfade_ms)
+        self.state.current_track_title = self.backend.get_current_track_title()
 
     def switch_playlist(self, playlist_name: str) -> None:
         """
         Switch playlists and update state.
-
-        Args:
-            playlist_name: Playlist folder name.
         """
         self.state.current_playlist = playlist_name
         self.state.current_track_index = 0
         self.state.is_music_playing = True
         self.backend.switch_playlist(playlist_name, fade_ms=self.state.music_crossfade_ms)
+        self.state.current_track_title = self.backend.get_current_track_title()
 
     def skip_track(self) -> None:
         """
@@ -50,6 +42,7 @@ class MixerService:
         """
         self.state.current_track_index += 1
         self.backend.skip_track(fade_ms=self.state.music_crossfade_ms)
+        self.state.current_track_title = self.backend.get_current_track_title()
 
     def advance_track(self) -> None:
         """
@@ -57,6 +50,7 @@ class MixerService:
         """
         self.state.current_track_index += 1
         self.backend.advance_track()
+        self.state.current_track_title = self.backend.get_current_track_title()
 
     def stop_music(self) -> None:
         """
@@ -64,17 +58,11 @@ class MixerService:
         """
         self.state.is_music_playing = False
         self.backend.stop_music(fade_ms=self.state.music_crossfade_ms)
+        self.state.current_track_title = None
 
     def toggle_ambience(self, name: str, path: str) -> bool:
         """
         Toggle an ambience layer on or off.
-
-        Args:
-            name: Unique layer name.
-            path: Relative path to the ambience file.
-
-        Returns:
-            True if added, False if removed or rejected.
         """
         existing = next((layer for layer in self.state.active_ambience if layer.name == name), None)
         if existing is not None:

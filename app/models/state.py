@@ -19,6 +19,7 @@ class PlaybackState(BaseModel):
     """
     current_playlist: str | None = None
     current_track_index: int = 0
+    current_track_title: str | None = None
     active_ambience: list[AmbienceLayer] = Field(default_factory=list)
     music_volume: float = 1.0
     ambience_volume: float = 1.0
