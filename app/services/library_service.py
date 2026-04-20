@@ -7,6 +7,7 @@ from app.models.media import AmbienceFolderItem, AmbienceTrackItem, PlaylistItem
 
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".ogg", ".flac", ".m4a"}
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+THUMBNAIL_NAMES = {"cover", "folder"}
 
 
 class LibraryService:
@@ -84,12 +85,6 @@ class LibraryService:
     def get_ambience_folder(self, folder_name: str) -> AmbienceFolderItem | None:
         """
         Return a single ambience folder by name.
-
-        Args:
-            folder_name: Name of the ambience folder.
-
-        Returns:
-            The matching ambience folder item, or None if not found.
         """
         folder = self.ambience_dir / folder_name
         if not folder.exists() or not folder.is_dir():
@@ -125,11 +120,18 @@ class LibraryService:
     def _collect_audio_files(self, folder: Path) -> list[Path]:
         """
         Collect audio files from a folder in alphabetical order.
+
+        Explicitly excludes thumbnail files such as cover.jpg/folder.png.
         """
         return sorted(
             [
-                p for p in folder.iterdir()
-                if p.is_file() and p.suffix.lower() in AUDIO_EXTENSIONS
+                p
+                for p in folder.iterdir()
+                if (
+                    p.is_file()
+                    and p.suffix.lower() in AUDIO_EXTENSIONS
+                    and p.stem.lower() not in THUMBNAIL_NAMES
+                )
             ]
         )
 

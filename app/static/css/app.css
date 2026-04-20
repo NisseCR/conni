@@ -13,6 +13,11 @@ h1, h2 {
   margin-bottom: 28px;
 }
 
+.back-link {
+  color: #9ad;
+  text-decoration: none;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -32,6 +37,11 @@ h1, h2 {
 
 .card:hover {
   border-color: #666;
+}
+
+.card-active {
+  border-color: #6ad;
+  box-shadow: 0 0 0 1px #6ad inset;
 }
 
 .thumb {
@@ -61,4 +71,31 @@ h1, h2 {
   border-radius: 10px;
   padding: 12px;
   white-space: pre-wrap;
+}
+
+.folder-header-card {
+  background: #1b1b1b;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 12px;
+  max-width: 320px;
+}
+
+.folder-thumb {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background: #2a2a2a;
+}
+
+.folder-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.folder-meta {
+  font-size: 0.9rem;
+  color: #bbb;
 }

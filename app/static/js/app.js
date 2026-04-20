@@ -61,9 +61,11 @@ function renderPlaylistCard(item) {
 }
 
 function renderAmbienceCard(item) {
-  const card = document.createElement('button');
+  const card = document.createElement('a');
   card.className = 'card';
-  card.type = 'button';
+  card.href = `/ambience/${item.title}`;
+  card.style.textDecoration = 'none';
+  card.style.color = 'inherit';
 
   const image = document.createElement('img');
   image.className = 'thumb';
@@ -85,15 +87,6 @@ function renderAmbienceCard(item) {
   card.appendChild(image);
   card.appendChild(title);
   card.appendChild(meta);
-
-  card.addEventListener('click', async () => {
-    await postJson('/api/ambience/toggle', {
-      name: item.title,
-      path: item.path,
-    });
-    await loadLibrary();
-    await loadState();
-  });
 
   return card;
 }
