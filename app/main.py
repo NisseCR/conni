@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import threading
 
 from fastapi import FastAPI
@@ -13,6 +14,17 @@ from app.services.hotkey_service import HotkeyService
 from app.services.library_service import LibraryService
 from app.services.mixer_service import MixerService
 from app.services.playback_service import PlaybackService
+from app.audio.stub_audio_backend import SimpleAudioBackend
+
+
+def configure_logging() -> None:
+    """
+    Configure application logging so backend stub messages are visible.
+    """
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
 
 
 def create_app() -> FastAPI:
@@ -24,8 +36,9 @@ def create_app() -> FastAPI:
     """
     app = FastAPI(title="Audio Mixer MVP")
 
+    backend = SimpleAudioBackend()
     app.state.library_service = LibraryService()
-    app.state.mixer_service = MixerService()
+    app.state.mixer_service = MixerService(backend)
     app.state.playback_service = PlaybackService(app.state.mixer_service)
 
     app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -39,6 +52,7 @@ def create_app() -> FastAPI:
     return app
 
 
+configure_logging()
 app = create_app()
 
 
