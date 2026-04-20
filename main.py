@@ -1,30 +1,16 @@
-import logging
-from pynput import keyboard
-from functools import partial
+import threading
 
-from app.services.index import index
-from app.services.play import play
+import uvicorn
 
-
-# Initialise logger.
-logging.basicConfig(
-    filename="app.log",
-    encoding="utf-8",
-    level=logging.ERROR,
-)
+from app.main import app, start_hotkeys
 
 
-def main():
-    # Index the playlist and soundboard files
-    index()
-
-    # Initialise keyboar listener.
-    with keyboard.GlobalHotKeys({
-            "<shift>+a+2": partial(play, "Atmosphere 2"),
-            "<shift>+b+2": partial(play, "Borealis 2"),
-            "<shift>+b+3": partial(play, "Borealis 3"),
-    }) as h:
-        h.join()
+def main() -> None:
+    """
+    Start the web server and hotkey listener.
+    """
+    threading.Thread(target=start_hotkeys, daemon=True).start()
+    uvicorn.run(app, host="127.0.0.1", port=8000)
 
 
 if __name__ == "__main__":
