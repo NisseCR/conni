@@ -92,3 +92,31 @@ class AudioBackend(ABC):
             fade_ms: Fade-out duration in milliseconds.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def set_master_volume(self, volume: float) -> None:
+        """
+        Set the master volume.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_music_volume(self, volume: float) -> None:
+        """
+        Set the music volume.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_ambience_volume(self, volume: float) -> None:
+        """
+        Set the global ambience volume.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_ambience_layer_volume(self, layer_name: str, volume: float) -> None:
+        """
+        Set volume for a single active ambience layer.
+        """
+        raise NotImplementedError
