@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import threading
 
 from fastapi import FastAPI
@@ -10,21 +9,11 @@ from app.api.routes.library import router as library_router
 from app.api.routes.playback import router as playback_router
 from app.api.routes.state import router as state_router
 from app.api.routes.ui import router as ui_router
+from app.audio.pygame_audio_backend import PygameAudioBackend
 from app.services.hotkey_service import HotkeyService
 from app.services.library_service import LibraryService
 from app.services.mixer_service import MixerService
 from app.services.playback_service import PlaybackService
-from app.audio.stub_audio_backend import SimpleAudioBackend
-
-
-def configure_logging() -> None:
-    """
-    Configure application logging so backend stub messages are visible.
-    """
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
 
 
 def create_app() -> FastAPI:
@@ -36,7 +25,7 @@ def create_app() -> FastAPI:
     """
     app = FastAPI(title="Audio Mixer MVP")
 
-    backend = SimpleAudioBackend()
+    backend = PygameAudioBackend()
     app.state.library_service = LibraryService()
     app.state.mixer_service = MixerService(backend)
     app.state.playback_service = PlaybackService(app.state.mixer_service)
@@ -52,7 +41,6 @@ def create_app() -> FastAPI:
     return app
 
 
-configure_logging()
 app = create_app()
 
 

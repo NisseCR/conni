@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from app.models.state import AmbienceLayer, PlaybackState
 from app.audio.audio_backend import AudioBackend
+from app.models.state import AmbienceLayer, PlaybackState
 
 
 class MixerService:
@@ -23,6 +23,9 @@ class MixerService:
     def start_playlist(self, playlist_name: str) -> None:
         """
         Start a playlist and update state.
+
+        Args:
+            playlist_name: Playlist folder name.
         """
         self.state.current_playlist = playlist_name
         self.state.current_track_index = 0
@@ -32,6 +35,9 @@ class MixerService:
     def switch_playlist(self, playlist_name: str) -> None:
         """
         Switch playlists and update state.
+
+        Args:
+            playlist_name: Playlist folder name.
         """
         self.state.current_playlist = playlist_name
         self.state.current_track_index = 0
@@ -40,7 +46,7 @@ class MixerService:
 
     def skip_track(self) -> None:
         """
-        Skip the current track.
+        Skip to the next track in the current playlist.
         """
         self.state.current_track_index += 1
         self.backend.skip_track()
@@ -55,6 +61,10 @@ class MixerService:
     def toggle_ambience(self, name: str, path: str) -> bool:
         """
         Toggle an ambience layer on or off.
+
+        Args:
+            name: Unique layer name.
+            path: Relative path to the ambience file.
 
         Returns:
             True if added, False if removed or rejected.
